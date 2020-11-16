@@ -1,0 +1,90 @@
+---
+title: "Practical Machine learning final course"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Goal of the project
+
+The goal of the project is to predict the manner in which some volunteers did 
+sports exercises. 
+The variable to predict is the "classe" variable in the training set.
+
+## We import the data and look inside
+
+```{r import data and vizualisation}
+data1<-read.table("pml-training.csv",na.strings=c("","NA"),sep=",",header=T)
+str(data1)
+```
+## We clean it
+
+There's a lot of variables which contain too much missing values.
+We can see from this graph that many variables have a lot of missing values.
+
+```{r data vizualisation, message=FALSE, warning=FALSE}
+if(!require("Amelia")){
+  install.packages("Amelia")
+}
+library(Amelia)
+missmap(data1, main = "Missing values vs observed")
+```
+
+I remove the variables when they contain more than 50% missing values for analysis. 
+I do not consider it appropriate and that it is useless to rectify them.
+
+```{r cleaning data-1, message=FALSE, warning=FALSE}
+# Count the number of missing values in each of the columns
+nbna<-sapply(data1,function(x) sum(is.na(x)))
+#I delete the variable if more than half of the observations are missing
+ina<-which(nbna >8311)
+ina<-as.data.frame(ina)
+
+for (i in ina)
+   {
+    data1[,i]<-NULL
+  }
+```
+
+I also delete the first 7 variables that are not suitable for analysis.
+
+```{r cleaning data-2, message=FALSE, warning=FALSE}
+data2<-data1[,-c(1:7)]
+```
+
+
+## Since there are many variables, I choose a random forest as a model, using the CARET package
+
+```{r model, message=FALSE, warning=FALSE}
+
+# creation of a training set and a test set
+
+library(caret)
+
+inTrain <- createDataPartition(y=data2$classe,
+                               p=0.7, list=FALSE)
+training <- data2[inTrain,]
+testing <- data2[-inTrain,]
+
+# launching of the model
+
+modFit <- train(classe~ .,data=training,method="rf",prox=TRUE)
+modFit
+
+print(modFit)
+
+## Predicting new values
+
+pred <- predict(modFit,testing)
+
+#confusion matrix
+
+table(pred,testing$classe)
+```
+
+
+
